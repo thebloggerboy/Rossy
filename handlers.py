@@ -1,4 +1,4 @@
-# handlers.py (Final, Complete, and Corrected Again)
+# handlers.py (Final, Complete, with All Features and Fixes)
 
 import logging
 import asyncio
@@ -92,46 +92,55 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query; await query.answer()
-    user_id = query.from_user.id; data = query.data
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
     
     if data.startswith("check_"):
         file_key = data.split("_", 1)[1]
+        
         if await is_user_member(user_id, context):
-            await query.message.delete(); await send_file(user_id, file_key, context)
+            await query.answer() # बटन क्लिक का जवाब दें
+            await query.message.delete()
+            await send_file(user_id, file_key, context)
         else:
+            # --- यहाँ मुख्य बदलाव है ---
+            # अब यह पॉप-अप अलर्ट सही से काम करेगा
             await query.answer(NOT_JOINED_ALERT, show_alert=True)
             
     elif data.startswith("resend_"):
+        await query.answer() # हमेशा answer() को पहले कॉल करें
         file_key = data.split("_", 1)[1]
-        await query.message.delete(); await send_file(user_id, file_key, context)
+        await query.message.delete()
+        await send_file(user_id, file_key, context)
         
     elif data == "close_msg":
         await query.message.delete()
+        await query.answer("Mᴇssᴀɢᴇ ᴅᴇʟᴇᴛᴇᴅ.")
 
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
     if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ɢᴇᴛ ɪᴛs IDs."); return
-    text = f"--- ℹ️ IDs Fᴏᴜɴᴅ ℹ️ ---\n\n👤 Usᴇʀ ID: {msg.from_user.id}\n💬 Cʜᴀᴛ ID: {msg.chat.id}"
+    text = f"--- ℹ️ IDs Fᴏᴜɴᴅ ℹ️ ---\n\n👤 Usᴇʀ ID: `{msg.from_user.id}`\n💬 Cʜᴀᴛ ID: `{msg.chat.id}`"
     file_id = None
     if msg.video: file_id = msg.video.file_id
     elif msg.document: file_id = msg.document.file_id
-    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n{file_id}"
-    await update.message.reply_text(text)
+    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n`{file_id}`"
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN_V2)
 
 async def get_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
     if not msg or not msg.forward_origin: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ FORWARDED ᴍᴇssᴀɢᴇ."); return
     origin = msg.forward_origin
-    text = f"--- ℹ️ Fᴏʀᴡᴀʀᴅᴇᴅ Mᴇssᴀɢᴇ IDs ℹ️ ---\n\n📢 Oʀɪɢɪɴᴀʟ Cʜᴀɴɴᴇʟ ID: {origin.chat.id}"
+    text = f"--- ℹ️ Fᴏʀᴡᴀʀᴅᴇᴅ Mᴇssᴀɢᴇ IDs ℹ️ ---\n\n📢 Oʀɪɢɪɴᴀʟ Cʜᴀɴɴᴇʟ ID: `{origin.chat.id}`"
     file_id = None
     if msg.video: file_id = msg.video.file_id
     elif msg.document: file_id = msg.document.file_id
-    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n{file_id}"
-    await update.message.reply_text(text)
+    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n`{file_id}`"
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN_V2)
 
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
@@ -142,27 +151,17 @@ async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
     if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ."); return
-    
     users = get_all_user_ids(); sent, failed = 0, 0
     await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛɪɴɢ sᴛᴀʀᴛᴇᴅ ᴛᴏ {len(users)} ᴜsᴇʀs...")
-    
     reply_markup = msg.reply_markup
-    
     for user_id in users:
         try:
-            await context.bot.copy_message(
-                chat_id=int(user_id),
-                from_chat_id=msg.chat_id,
-                message_id=msg.message_id,
-                reply_markup=reply_markup
-            )
+            await context.bot.copy_message(chat_id=int(user_id), from_chat_id=msg.chat_id, message_id=msg.message_id, reply_markup=reply_markup)
             sent += 1; await asyncio.sleep(0.1)
         except Exception as e:
             failed += 1; logger.error(f"Bʀᴏᴀᴅᴄᴀsᴛ ғᴀɪʟᴇᴅ ғᴏʀ {user_id}: {e}")
             if "bot was blocked by the user" in str(e):
-                db["users"].pop(str(user_id), None)
-
-    save_db(db)
+                db["users"].pop(str(user_id), None); save_db(db)
     await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛ ғɪɴɪsʜᴇᴅ!\n\n✅ Sᴇɴᴛ ᴛᴏ: {sent} ᴜsᴇʀs\n❌ Fᴀɪʟᴇᴅ ғᴏʀ: {failed} ᴜsᴇʀs")
 
 async def ban_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ban=True):
