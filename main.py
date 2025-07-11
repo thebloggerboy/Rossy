@@ -1,28 +1,26 @@
-# main.py (Phase 2 - Upgraded)
-import os
-import logging
+# main.py
+import os, logging
 from threading import Thread
 from flask import Flask
 from telegram.ext import Application
 from dotenv import load_dotenv
-
-# हमारे बनाए हुए मॉड्यूल्स को इम्पोर्ट करें
-from handlers import register_handlers # अब हम सिर्फ एक फंक्शन इम्पोर्ट करेंगे
+from handlers import register_handlers
 from config import TOKEN
 
-# ... (बाकी का सेटअप वैसा ही रहेगा) ...
+load_dotenv()
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# --- मुख्य फंक्शन ---
+app = Flask('')
+@app.route('/')
+def home(): return "Bot is alive!"
+def run_flask(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+def keep_alive(): Thread(target=run_flask).start()
+
 def main():
-    if not TOKEN:
-        logger.critical("TELEGRAM_BOT_TOKEN not set!")
-        return
-
+    if not TOKEN: logger.critical("TOKEN not set!"); return
     application = Application.builder().token(TOKEN).build()
-    
-    # सभी हैंडलर्स को handlers.py से रजिस्टर करें
     register_handlers(application)
-    
     keep_alive()
     logger.info("Bot is ready and polling!")
     application.run_polling()
