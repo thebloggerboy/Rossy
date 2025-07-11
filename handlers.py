@@ -98,9 +98,17 @@ async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = get_all_user_ids(); sent, failed = 0, 0
     await update.message.reply_text(f"Broadcasting started to {len(users)} users... Please wait.")
     
+    # --- यहाँ मुख्य बदलाव है ---
+    reply_markup = msg.reply_markup
+    
     for user_id in users:
         try:
-            await msg.copy(chat_id=int(user_id))
+            await context.bot.copy_message(
+                chat_id=int(user_id),
+                from_chat_id=msg.chat_id,
+                message_id=msg.message_id,
+                reply_markup=reply_markup # <-- यह बटन को भी साथ भेजेगा
+            )
             sent += 1; await asyncio.sleep(0.1)
         except Exception as e:
             failed += 1; logger.error(f"Broadcast failed for {user_id}: {e}")
