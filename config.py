@@ -14,7 +14,7 @@ FORCE_SUB_CHANNELS = [
 # file_type: 'video', 'document', 'series'
 FILE_DATA = {
     # सिंगल फाइल्स
-    "Episode1": {"type": "video", "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", "caption": "<b>Episode 1</b>"},
+    "Episode1": {"type": "video", "id": "BAACAgUAAxkBAAMvaHChKnCxPcJJrgua3vx2ZYFRt6QAAroTAALdcVBXIIL-uAu5A0Q2BA", "caption": "<b>Episode 1</b>"},
     "Episode2": {"type": "video", "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", "caption": "<b>Episode 2</b>"},
     "some_apk": {"type": "document", "id": "YOUR_APK_FILE_ID", "caption": "Here is the APK file."},
 
