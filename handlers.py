@@ -7,7 +7,6 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 
-# हमारे दूसरे मॉड्यूल्स से ज़रूरी चीजें इम्पोर्ट करें
 from config import ADMIN_IDS, FORCE_SUB_CHANNELS, FILE_DATA, DELETE_DELAY
 from database import db, add_user, ban_user, unban_user, get_all_user_ids, save_db
 
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 # --- हेल्पर फंक्शन्स ---
 async def is_user_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user_id in ADMIN_IDS: return True
-    if not FORCE_SUB_CHANNELS: return True
     for channel in FORCE_SUB_CHANNELS:
         try:
             member = await context.bot.get_chat_member(chat_id=channel["chat_id"], user_id=user_id)
@@ -32,7 +30,6 @@ async def send_force_subscribe_message(update: Update, context: ContextTypes.DEF
     await update.message.reply_text("Please join all required channels to get the file.", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
-    # यह फंक्शन बाद में ऑटो-डिलीट और सीरीज को हैंडल करेगा
     if file_key in FILE_DATA:
         file_info = FILE_DATA[file_key]
         await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=file_info["caption"], parse_mode=ParseMode.HTML)
@@ -126,7 +123,6 @@ async def ban_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ban=Tr
             else: await update.message.reply_text("User not in ban list.")
     except ValueError: await update.message.reply_text("Invalid User ID.")
 
-# --- सभी हैंडलर्स को रजिस्टर करने के लिए एक फंक्शन ---
 def register_handlers(application):
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stats", stats_handler))
