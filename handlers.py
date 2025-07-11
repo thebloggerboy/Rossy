@@ -1,4 +1,4 @@
-# handlers.py (Final, Complete, and with Robust Broadcast)
+# handlers.py (Final, Complete, with All Features and Fonts)
 
 import logging
 import asyncio
@@ -12,6 +12,15 @@ from config import ADMIN_IDS, FORCE_SUB_CHANNELS, FILE_DATA, DELETE_DELAY, MAIN_
 from database import db, add_user, ban_user, unban_user, get_all_user_ids, save_db
 
 logger = logging.getLogger(__name__)
+
+# --- फैंसी टेक्स्ट ---
+WELCOME_TEXT = "Wᴇʟᴄᴏᴍᴇ, {user_name}! Pʟᴇᴀsᴇ ᴜsᴇ ᴀ ʟɪɴᴋ ғʀᴏᴍ ᴏᴜʀ ᴍᴀɪɴ ᴄʜᴀɴɴᴇʟ."
+JOIN_CHANNEL_TEXT = "Pʟᴇᴀsᴇ ᴊᴏɪɴ ᴀʟʟ ʀᴇǫᴜɪʀᴇᴅ ᴄʜᴀɴɴᴇʟs ᴛᴏ ɢᴇᴛ ᴛʜᴇ ғɪʟᴇ."
+NOT_JOINED_ALERT = "Yᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴀʟʟ ʀᴇǫᴜɪʀᴇᴅ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ. Pʟᴇᴀsᴇ ᴊᴏɪɴ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ."
+BANNED_TEXT = "Yᴏᴜ ᴀʀᴇ ʙᴀɴɴᴇᴅ ғʀᴏᴍ ᴜsɪɴɢ ᴛʜɪs ʙᴏᴛ."
+FILE_NOT_FOUND_TEXT = "Sᴏʀʀʏ, ғɪʟᴇ ᴋᴇʏ ɴᴏᴛ ғᴏᴜɴᴅ."
+DELETE_WARNING_TEXT = "⚠️ Yᴏᴜʀ ғɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ᴡɪᴛʜɪɴ 15 Mɪɴᴜᴛᴇs. Pʟᴇᴀsᴇ ᴅᴏᴡɴʟᴏᴀᴅ ᴏʀ ғᴏʀᴡᴀʀᴅ ɪᴛ."
+RESEND_PROMPT_TEXT = "<i>Yᴏᴜʀ Fɪʟᴇ ({file_key}) ᴡᴀs Dᴇʟᴇᴛᴇᴅ 🗑\nIғ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɢᴇᴛ ɪᴛ ᴀɢᴀɪɴ, ᴄʟɪᴄᴋ ᴛʜᴇ 'Wᴀᴛᴄʜ Aɢᴀɪɴ' ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.</i>"
 
 # --- हेल्पर फंक्शन्स ---
 async def is_user_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -27,114 +36,137 @@ async def send_force_subscribe_message(update: Update, context: ContextTypes.DEF
     file_key = context.user_data.get('file_key')
     if not file_key: return
     join_buttons = [InlineKeyboardButton(ch["name"], url=ch["invite_link"]) for ch in FORCE_SUB_CHANNELS]
-    keyboard = [join_buttons, [InlineKeyboardButton("✅ Joined", callback_data=f"check_{file_key}")]]
-    await update.message.reply_text("Please join all required channels to get the file.", reply_markup=InlineKeyboardMarkup(keyboard))
+    keyboard = [join_buttons, [InlineKeyboardButton("✅ Jᴏɪɴᴇᴅ", callback_data=f"check_{file_key}")]]
+    await update.message.reply_text(JOIN_CHANNEL_TEXT, reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
+    job = context.job
+    chat_id, message_ids, file_key, caption = job.chat_id, job.data['message_ids'], job.data['file_key'], job.data['caption']
+    try:
+        for msg_id in message_ids:
+            try: await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
+            except BadRequest: pass
+        
+        keyboard = [[InlineKeyboardButton("▶️ Wᴀᴛᴄʜ Aɢᴀɪɴ", callback_data=f"resend_{file_key}"), InlineKeyboardButton("❌ Dᴇʟᴇᴛᴇ", callback_data="close_msg")]]
+        
+        text = f"{caption}\n\n{RESEND_PROMPT_TEXT.format(file_key=file_key)}"
+        await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception as e:
+        logger.error(f"Error in auto_delete_messages: {e}")
 
 async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
-    if file_key in FILE_DATA:
-        file_info = FILE_DATA[file_key]
-        await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=file_info["caption"], parse_mode=ParseMode.HTML)
-        logger.info(f"Sent file '{file_key}' to user {user_id}")
-    else:
-        await context.bot.send_message(chat_id=user_id, text="Sorry, file key not found.")
+    if file_key not in FILE_DATA:
+        await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT)
+        return
+        
+    file_info = FILE_DATA[file_key]
+    caption = file_info.get("caption", "")
+    
+    video_message = await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=caption, parse_mode=ParseMode.HTML)
+    warning_message = await context.bot.send_message(chat_id=user_id, text=DELETE_WARNING_TEXT)
+    
+    context.job_queue.run_once(
+        auto_delete_messages, 
+        DELETE_DELAY, 
+        data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption}, 
+        chat_id=user_id
+    )
 
 # --- कमांड और बटन हैंडलर्स ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     add_user(user.id)
     if user.id in db["banned_users"]:
-        await update.message.reply_text("You are banned from using this bot."); return
+        await update.message.reply_text(BANNED_TEXT); return
+
     if context.args:
         file_key = context.args[0]
         context.user_data['file_key'] = file_key
         if await is_user_member(user.id, context): await send_file(user.id, file_key, context)
         else: await send_force_subscribe_message(update, context)
     else:
-        keyboard = [[InlineKeyboardButton("Go to Main Channel", url=MAIN_CHANNEL_LINK)]]
-        await update.message.reply_text(f"Welcome, {user.first_name}! Please use a link from our main channel.", reply_markup=InlineKeyboardMarkup(keyboard))
+        keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
+        await update.message.reply_text(
+            WELCOME_TEXT.format(user_name=user.first_name),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query; await query.answer()
     user_id = query.from_user.id; data = query.data
+    
     if data.startswith("check_"):
         file_key = data.split("_", 1)[1]
         if await is_user_member(user_id, context):
             await query.message.delete(); await send_file(user_id, file_key, context)
         else:
-            await query.answer("You haven't joined all channels yet. Please join and try again.", show_alert=True)
+            await query.answer(NOT_JOINED_ALERT, show_alert=True)
+            
+    elif data.startswith("resend_"):
+        file_key = data.split("_", 1)[1]
+        await query.message.delete(); await send_file(user_id, file_key, context)
+        
+    elif data == "close_msg":
+        await query.message.delete()
+        await query.answer("Mᴇssᴀɢᴇ ᴅᴇʟᴇᴛᴇᴅ.")
 
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
-    if not msg: await update.message.reply_text("Please reply to a message to get IDs."); return
-    text = f"--- ℹ️ IDs Found ℹ️ ---\n\n👤 User ID: {msg.from_user.id}\n💬 Chat ID: {msg.chat.id}"
+    if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ɢᴇᴛ ɪᴛs IDs."); return
+    text = f"--- ℹ️ IDs Fᴏᴜɴᴅ ℹ️ ---\n\n👤 Usᴇʀ ID: {msg.from_user.id}\n💬 Cʜᴀᴛ ID: {msg.chat.id}"
     file_id = None
     if msg.video: file_id = msg.video.file_id
     elif msg.document: file_id = msg.document.file_id
-    if file_id: text += f"\n\n📄 File ID:\n{file_id}"
+    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n{file_id}"
     await update.message.reply_text(text)
 
 async def get_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
-    if not msg or not msg.forward_origin: await update.message.reply_text("Please reply to a FORWARDED message."); return
+    if not msg or not msg.forward_origin: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ FORWARDED ᴍᴇssᴀɢᴇ."); return
     origin = msg.forward_origin
-    text = f"--- ℹ️ Forwarded Message IDs ℹ️ ---\n\n📢 Original Channel ID: {origin.chat.id}"
+    text = f"--- ℹ️ Fᴏʀᴡᴀʀᴅᴇᴅ Mᴇssᴀɢᴇ IDs ℹ️ ---\n\n📢 Oʀɪɢɪɴᴀʟ Cʜᴀɴɴᴇʟ ID: {origin.chat.id}"
     file_id = None
     if msg.video: file_id = msg.video.file_id
     elif msg.document: file_id = msg.document.file_id
-    if file_id: text += f"\n\n📄 File ID:\n{file_id}"
+    if file_id: text += f"\n\n📄 Fɪʟᴇ ID:\n{file_id}"
     await update.message.reply_text(text)
 
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     total = len(db["users"]); banned = len(db["banned_users"])
-    await update.message.reply_text(f"📊 Bot Stats 📊\n\n👤 Total Users: {total}\n🚫 Banned Users: {banned}")
+    await update.message.reply_text(f"📊 Bᴏᴛ Sᴛᴀᴛs 📊\n\n👤 Tᴏᴛᴀʟ Usᴇʀs: {total}\n🚫 Bᴀɴɴᴇᴅ Usᴇʀs: {banned}")
 
 async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
-    if not msg: await update.message.reply_text("Please reply to a message to broadcast."); return
-    
+    if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ."); return
     users = get_all_user_ids(); sent, failed = 0, 0
-    await update.message.reply_text(f"Broadcasting started to {len(users)} users... Please wait.")
-    
-    # --- यहाँ मुख्य बदलाव है ---
-    # हम ओरिजिनल मैसेज से बटन को अलग से निकालते हैं
-    reply_markup = msg.reply_markup
-    
+    await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛɪɴɢ sᴛᴀʀᴛᴇᴅ ᴛᴏ {len(users)} ᴜsᴇʀs...")
     for user_id in users:
         try:
-            # अब हम copy_message का इस्तेमाल करेंगे और reply_markup को अलग से भेजेंगे
-            await context.bot.copy_message(
-                chat_id=int(user_id),
-                from_chat_id=msg.chat_id,
-                message_id=msg.message_id,
-                reply_markup=reply_markup # <-- यह बटन को भी साथ भेजेगा
-            )
+            await msg.copy(chat_id=int(user_id))
             sent += 1; await asyncio.sleep(0.1)
         except Exception as e:
-            failed += 1; logger.error(f"Broadcast failed for {user_id}: {e}")
+            failed += 1; logger.error(f"Bʀᴏᴀᴅᴄᴀsᴛ ғᴀɪʟᴇᴅ ғᴏʀ {user_id}: {e}")
             if "bot was blocked by the user" in str(e):
-                db["users"].pop(str(user_id), None)
-
-    save_db(db)
-    await update.message.reply_text(f"Broadcast finished!\n\n✅ Sent to: {sent} users\n❌ Failed for: {failed} users")
+                db["users"].pop(str(user_id), None); save_db(db)
+    await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛ ғɪɴɪsʜᴇᴅ!\n\n✅ Sᴇɴᴛ ᴛᴏ: {sent} ᴜsᴇʀs\n❌ Fᴀɪʟᴇᴅ ғᴏʀ: {failed} ᴜsᴇʀs")
 
 async def ban_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ban=True):
     if update.effective_user.id not in ADMIN_IDS: return
-    if not context.args: await update.message.reply_text(f"Usage: /{'ban' if ban else 'unban'} <user_id>"); return
+    if not context.args: await update.message.reply_text(f"Usᴀɢᴇ: /{'ban' if ban else 'unban'} <user_id>"); return
     try:
         user_id = int(context.args[0])
-        if ban:
-            if ban_user(user_id): await update.message.reply_text(f"User {user_id} banned.")
-            else: await update.message.reply_text("User already banned.")
-        else:
-            if unban_user(user_id): await update.message.reply_text(f"User {user_id} unbanned.")
-            else: await update.message.reply_text("User not in ban list.")
-    except ValueError: await update.message.reply_text("Invalid User ID.")
+        action = "banned" if ban else "unbanned"
+        success = ban_user(user_id) if ban else unban_user(user_id)
+        if success: await update.message.reply_text(f"Usᴇʀ {user_id} ʜᴀs ʙᴇᴇɴ {action}.")
+        else: await update.message.reply_text(f"Usᴇʀ {user_id} {'is already banned' if ban else 'was not in ban list'}.")
+    except ValueError: await update.message.reply_text("Iɴᴠᴀʟɪᴅ Usᴇʀ ID.")
 
+# --- सभी हैंडलर्स को रजिस्टर करने के लिए एक फंक्शन ---
 def register_handlers(application):
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stats", stats_handler))
