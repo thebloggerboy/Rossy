@@ -1,4 +1,4 @@
-# handlers.py (Final, Complete, and Corrected)
+# handlers.py (Final, Complete, and Corrected for Broadcast)
 
 import logging
 import asyncio
@@ -9,13 +9,14 @@ from telegram.error import BadRequest
 
 # हमारे दूसरे मॉड्यूल्स से ज़रूरी चीजें इम्पोर्ट करें
 from config import ADMIN_IDS, FORCE_SUB_CHANNELS, FILE_DATA, DELETE_DELAY
-from database import db, add_user, ban_user, unban_user, get_all_user_ids
+from database import db, add_user, ban_user, unban_user, get_all_user_ids, save_db
 
 logger = logging.getLogger(__name__)
 
 # --- हेल्पर फंक्शन्स ---
 async def is_user_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user_id in ADMIN_IDS: return True
+    if not FORCE_SUB_CHANNELS: return True
     for channel in FORCE_SUB_CHANNELS:
         try:
             member = await context.bot.get_chat_member(chat_id=channel["chat_id"], user_id=user_id)
@@ -31,12 +32,13 @@ async def send_force_subscribe_message(update: Update, context: ContextTypes.DEF
     await update.message.reply_text("Please join all required channels to get the file.", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
-    if file_key not in FILE_DATA:
+    # यह फंक्शन बाद में ऑटो-डिलीट और सीरीज को हैंडल करेगा
+    if file_key in FILE_DATA:
+        file_info = FILE_DATA[file_key]
+        await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=file_info["caption"], parse_mode=ParseMode.HTML)
+        logger.info(f"Sent file '{file_key}' to user {user_id}")
+    else:
         await context.bot.send_message(chat_id=user_id, text="Sorry, file key not found.")
-        return
-    file_info = FILE_DATA[file_key]
-    await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=file_info["caption"], parse_mode=ParseMode.HTML)
-    logger.info(f"Sent file '{file_key}' to user {user_id}")
 
 # --- कमांड और बटन हैंडलर्स ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -99,20 +101,16 @@ async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     users = get_all_user_ids(); sent, failed = 0, 0
     await update.message.reply_text(f"Broadcasting started to {len(users)} users... Please wait.")
     
-    photo = msg.photo[-1].file_id if msg.photo else None
-    caption = msg.caption
-    reply_markup = msg.reply_markup
-    
     for user_id in users:
         try:
-            if photo:
-                await context.bot.send_photo(chat_id=int(user_id), photo=photo, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
-            elif caption:
-                await context.bot.send_message(chat_id=int(user_id), text=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+            await msg.copy(chat_id=int(user_id))
             sent += 1; await asyncio.sleep(0.1)
         except Exception as e:
             failed += 1; logger.error(f"Broadcast failed for {user_id}: {e}")
-            
+            if "bot was blocked by the user" in str(e):
+                db["users"].pop(str(user_id), None)
+
+    save_db(db)
     await update.message.reply_text(f"Broadcast finished!\n\n✅ Sent to: {sent} users\n❌ Failed for: {failed} users")
 
 async def ban_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ban=True):
