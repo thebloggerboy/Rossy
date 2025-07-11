@@ -1,4 +1,4 @@
-# handlers.py (Final, Complete, with All Features and Fixes)
+# handlers.py (Final, Complete, with All Handlers Correctly Registered)
 
 import logging
 import asyncio
@@ -92,31 +92,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    data = query.data
+    query = update.callback_query; await query.answer()
+    user_id = query.from_user.id; data = query.data
     
     if data.startswith("check_"):
         file_key = data.split("_", 1)[1]
-        
         if await is_user_member(user_id, context):
-            await query.answer() # बटन क्लिक का जवाब दें
-            await query.message.delete()
-            await send_file(user_id, file_key, context)
+            await query.message.delete(); await send_file(user_id, file_key, context)
         else:
-            # --- यहाँ मुख्य बदलाव है ---
-            # अब यह पॉप-अप अलर्ट सही से काम करेगा
             await query.answer(NOT_JOINED_ALERT, show_alert=True)
             
     elif data.startswith("resend_"):
-        await query.answer() # हमेशा answer() को पहले कॉल करें
         file_key = data.split("_", 1)[1]
-        await query.message.delete()
-        await send_file(user_id, file_key, context)
+        await query.message.delete(); await send_file(user_id, file_key, context)
         
     elif data == "close_msg":
         await query.message.delete()
-        await query.answer("Mᴇssᴀɢᴇ ᴅᴇʟᴇᴛᴇᴅ.")
 
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
