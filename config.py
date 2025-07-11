@@ -1,27 +1,45 @@
-# config.py (Corrected)
+# config.py (Final with Series/Pack Example)
 
 # 1. आपकी एडमिन ID
 ADMIN_IDS = [6056915535]
 
-# 2. फोर्स सब्सक्राइब के लिए चैनल
+# 2. आपके मेन चैनल का लिंक (डायरेक्ट /start के लिए)
+MAIN_CHANNEL_LINK = "https://t.me/YourMainChannel" 
+
+# 3. फोर्स सब्सक्राइब के लिए चैनल
 FORCE_SUB_CHANNELS = [
     {"chat_id": -1002599545967, "name": "Join 1", "invite_link": "https://t.me/+p2ErvvDmitZmYzdl"},
     {"chat_id": -1002391821078, "name": "Join 2", "invite_link": "https://t.me/+T4LO1ePja_I5NWQ1"}
 ]
 
-# 3. आपकी फाइलें
+# 4. आपकी फाइलें, पैक, और सीरीज
+# file_type: 'video', 'document', 'series'
 FILE_DATA = {
+    # --- सिंगल फाइल्स ---
     "Episode1": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMOaHCndy2NMEYcR2Tx1X4Uzn0dfK8AAroTAALdcVBXg2v4WwcZSvM2BA", # <-- यहाँ hanny bot से निकली नई ID डालें
-        "caption": "<b>Episode 1</b>"
+        "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", 
+        "caption": "<b>Episode 1</b>\nQuality: 720pHD"
     },
     "Episode2": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMiaHDRqojuKePoldE3UfB_gOsResAAAv0VAALdcVBX0TWMdOd9gyQ2BA",
-        "caption": "<b>Episode 2</b>"
+        "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
+        "caption": "<b>Episode 2</b>\nQuality: 1080p"
+    },
+    "some_apk": {
+        "type": "document", 
+        "id": "YOUR_APK_FILE_ID_HERE", # .apk फाइल की ID यहाँ डालें
+        "caption": "Here is the latest version of the App."
+    },
+
+    # --- सीरीज/पैक का उदाहरण ---
+    "Season1Pack": {
+        "type": "series",
+        # इस लिस्ट में उन सभी एपिसोड की 'key' डालें जिन्हें आप भेजना चाहते हैं
+        "episodes": ["Episode1", "Episode2"] 
+        # आप और भी जोड़ सकते हैं, जैसे: ["Episode1", "Episode2", "Episode3", ...]
     }
 }
 
-# 4. डिलीट का समय (सेकंड में)
+# 5. डिलीट का समय (सेकंड में)
 DELETE_DELAY = 900  # 15 मिनट
