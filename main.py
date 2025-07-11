@@ -1,3 +1,4 @@
+# main.py (Corrected)
 import os
 import logging
 from threading import Thread
@@ -7,7 +8,6 @@ from dotenv import load_dotenv
 
 # हमारे बनाए हुए मॉड्यूल्स को इम्पोर्ट करें
 from handlers import register_handlers
-from config import TOKEN
 
 # .env फाइल लोड करें
 load_dotenv()
@@ -17,6 +17,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# --- टोकन को सीधे एनवायरनमेंट से लें ---
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 # --- Flask वेब सर्वर ---
 app = Flask('')
