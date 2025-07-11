@@ -13,12 +13,12 @@ FORCE_SUB_CHANNELS = [
 FILE_DATA = {
     "Episode1": {
         "type": "video", 
-        "id": "YOUR_NEW_EPISODE_1_ID_HERE", # <-- यहाँ hanny bot से निकली नई ID डालें
+        "id": "BAACAgUAAxkBAAMOaHCndy2NMEYcR2Tx1X4Uzn0dfK8AAroTAALdcVBXg2v4WwcZSvM2BA", # <-- यहाँ hanny bot से निकली नई ID डालें
         "caption": "<b>Episode 1</b>"
     },
     "Episode2": {
         "type": "video", 
-        "id": "YOUR_NEW_EPISODE_2_ID_HERE",
+        "id": "BAACAgUAAxkBAAMiaHDRqojuKePoldE3UfB_gOsResAAAv0VAALdcVBX0TWMdOd9gyQ2BA",
         "caption": "<b>Episode 2</b>"
     }
 }
