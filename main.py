@@ -1,4 +1,4 @@
-# main.py (Final All-in-One Version)
+# main.py (Final, Complete, All-in-One, and Corrected)
 import os
 import logging
 import asyncio
@@ -123,9 +123,29 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"📊 Bᴏᴛ Sᴛᴀᴛs 📊\n\n👤 Tᴏᴛᴀʟ Usᴇʀs: {total}\n🚫 Bᴀɴɴᴇᴅ Usᴇʀs: {banned}")
 
 async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ... (यह फंक्शन वैसा ही रहेगा) ...
+    if update.effective_user.id not in ADMIN_IDS: return
+    msg = update.message.reply_to_message
+    if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ."); return
+    users, sent, failed = get_all_user_ids(), 0, 0
+    await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛɪɴɢ sᴛᴀʀᴛᴇᴅ ᴛᴏ {len(users)} ᴜsᴇʀs...")
+    for user_id in users:
+        try:
+            await msg.copy(chat_id=int(user_id)); sent += 1; await asyncio.sleep(0.1)
+        except Exception as e:
+            failed += 1; logger.error(f"Bʀᴏᴀᴅᴄᴀsᴛ ғᴀɪʟᴇᴅ ғᴏʀ {user_id}: {e}")
+            if "bot was blocked" in str(e): db["users"].pop(str(user_id), None)
+    save_db(db)
+    await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛ ғɪɴɪsʜᴇᴅ!\n\n✅ Sᴇɴᴛ ᴛᴏ: {sent}\n❌ Fᴀɪʟᴇᴅ ғᴏʀ: {failed}")
+
 async def ban_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, ban=True):
-    # ... (यह फंक्शन वैसा ही रहेगा) ...
+    if update.effective_user.id not in ADMIN_IDS: return
+    if not context.args: await update.message.reply_text(f"Usᴀɢᴇ: /{'ban' if ban else 'unban'} <user_id>"); return
+    try:
+        user_id, action = int(context.args[0]), "banned" if ban else "unbanned"
+        success = ban_user(user_id) if ban else unban_user(user_id)
+        if success: await update.message.reply_text(f"Usᴇʀ {user_id} ʜᴀs ʙᴇᴇɴ {action}.")
+        else: await update.message.reply_text(f"Usᴇʀ {user_id} {'is already banned' if ban else 'was not in ban list'}.")
+    except ValueError: await update.message.reply_text("Iɴᴠᴀʟɪᴅ Usᴇʀ ID.")
 
 # --- मुख्य फंक्शन ---
 def main():
@@ -148,3 +168,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
