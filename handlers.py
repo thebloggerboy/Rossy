@@ -8,7 +8,7 @@ from telegram.error import BadRequest
 
 # हमारे दूसरे मॉड्यूल्स से ज़रूरी चीजें इम्पोर्ट करें
 from config import ADMIN_IDS, FORCE_SUB_CHANNELS, FILE_DATA, DELETE_DELAY
-from database import db, add_user, ban_user, unban_user # हम बाद में इन फंक्शन्स को बनाएंगे
+from database import db, add_user, ban_user, unban_user
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_T
 # --- कमांड और बटन हैंडलर्स ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    add_user(user.id) # नए यूजर को डेटाबेस में जोड़ें
+    add_user(user.id)
 
     if user.id in db["banned_users"]:
         await update.message.reply_text("You are banned from using this bot.")
