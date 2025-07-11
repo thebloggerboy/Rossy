@@ -1,4 +1,3 @@
-# main.py
 import os
 import logging
 from threading import Thread
@@ -19,32 +18,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# --- Flask वेब सर्वर (यह हमारी मुख्य एप्लीकेशन है) ---
+# --- Flask वेब सर्वर ---
 app = Flask('')
-
 @app.route('/')
 def home():
     return "Hanny Bot is alive and running!"
 
-# --- Telegram बॉट का सेटअप ---
-def run_bot():
-    """बॉट एप्लीकेशन बनाता है, हैंडलर्स रजिस्टर करता है, और पोलिंग शुरू करता है।"""
+def run_flask():
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.start()
+
+# --- मुख्य फंक्शन ---
+def main():
     if not TOKEN:
-        logger.critical("TELEGRAM_BOT_TOKEN not set!")
+        logger.critical("TELEGRAM_BOT_TOKEN not set! Bot cannot start.")
         return
-        
+
     application = Application.builder().token(TOKEN).build()
-    register_handlers(application) # हैंडलर्स को handlers.py से रजिस्टर करें
     
+    # सभी हैंडलर्स को handlers.py से रजिस्टर करें
+    register_handlers(application)
+    
+    # Flask को बैकग्राउंड में चलाएं
+    keep_alive()
+    logger.info("Keep-alive server started.")
+    
+    # बॉट को पोलिंग मोड में चलाएं
     logger.info("Bot is starting polling...")
     application.run_polling()
 
-# --- मुख्य हिस्सा ---
 if __name__ == '__main__':
-    # बॉट को एक अलग थ्रेड में चलाएं
-    bot_thread = Thread(target=run_bot)
-    bot_thread.start()
-    
-    # Flask सर्वर को मुख्य थ्रेड में चलाएं
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    main()
