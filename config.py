@@ -4,7 +4,7 @@
 ADMIN_IDS = [6056915535]
 
 # 2. आपके मेन चैनल का लिंक (डायरेक्ट /start के लिए)
-MAIN_CHANNEL_LINK = "https://t.me/YourMainChannel" 
+MAIN_CHANNEL_LINK = "https://t.me/+ngy1Guv8koBiODM1" 
 
 # 3. फोर्स सब्सक्राइब के लिए चैनल
 FORCE_SUB_CHANNELS = [
