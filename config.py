@@ -1,4 +1,4 @@
-# config.py (Correct Template)
+# config.py (Corrected)
 
 # 1. आपकी एडमिन ID
 ADMIN_IDS = [6056915535]
@@ -9,22 +9,18 @@ FORCE_SUB_CHANNELS = [
     {"chat_id": -1002391821078, "name": "Join 2", "invite_link": "https://t.me/+T4LO1ePja_I5NWQ1"}
 ]
 
-# 3. आपकी फाइलें और सीरीज
+# 3. आपकी फाइलें
 FILE_DATA = {
-
     "Episode1": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", 
+        "id": "YOUR_NEW_EPISODE_1_ID_HERE", # <-- यहाँ hanny bot से निकली नई ID डालें
         "caption": "<b>Episode 1</b>"
-    }, # <-- हर ब्लॉक के बाद यह कॉमा ज़रूरी है
-
+    },
     "Episode2": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
+        "id": "YOUR_NEW_EPISODE_2_ID_HERE",
         "caption": "<b>Episode 2</b>"
-    } # <-- आखिरी ब्लॉक के बाद कॉमा की ज़रूरत नहीं है
-    
-    # आप और भी फाइलें यहाँ जोड़ सकते हैं
+    }
 }
 
 # 4. डिलीट का समय (सेकंड में)
