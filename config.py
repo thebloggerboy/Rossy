@@ -1,5 +1,6 @@
 # config.py (Final with Series/Pack Example)
-
+# config.py के अंदर
+LOG_CHANNEL_ID = -1002365365973  # <-- यहाँ अपने प्राइवेट लॉग चैनल की ID डालें
 # 1. आपकी एडमिन ID
 ADMIN_IDS = [6056915535]
 
@@ -16,15 +17,32 @@ FORCE_SUB_CHANNELS = [
 # file_type: 'video', 'document', 'series'
 FILE_DATA = {
     # --- सिंगल फाइल्स ---
+    # config.py
+
+FILE_DATA = {
     "Episode1": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", 
-        "caption": "<b>Episode 1</b>\nQuality: 720pHD"
+        "id": "...", 
+        "caption": "<b>Episode 1</b>",
+        "buttons": [
+            # पहली पंक्ति में 2 बटन
+            [
+                {"text": "🎬 Part 2", "url": "https://t.me/YourBot?start=Episode2"},
+                {"text": "👍 Like", "callback_data": "like_ep1"}
+            ],
+            # दूसरी पंक्ति में 1 बटन
+            [
+                {"text": "Join Our Channel", "url": "https://t.me/YourChannel"}
+            ]
+        ]
     },
     "Episode2": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
-        "caption": "<b>Episode 2</b>\nQuality: 1080p"
+        "id": "...", 
+        "caption": "<b>Episode 2</b>"
+        # इस एपिसोड के लिए कोई बटन नहीं है, तो यह खाली रहेगा
+    }
+}
     },
     "some_apk": {
         "type": "document", 
