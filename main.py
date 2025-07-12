@@ -69,10 +69,43 @@ async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e: logger.error(f"Error in auto_delete_messages: {e}")
 
+# main.py के अंदर
+
 async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
-    if file_key not in FILE_DATA: await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT); return
-    file_info = FILE_DATA[file_key]; caption = file_info.get("caption", "")
-    video_message = await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=caption, parse_mode=ParseMode.HTML)
+    if file_key not in FILE_DATA:
+        # ... (एरर वाला कोड वैसा ही रहेगा)
+        return
+        
+    file_info = FILE_DATA[file_key]
+    caption = file_info.get("caption", "")
+    file_id = file_info.get("id")
+    
+    # --- यहाँ मुख्य बदलाव है ---
+    reply_markup = None
+    if "buttons" in file_info:
+        # बटनों को पंक्तियों के हिसाब से बनाने का लॉजिक
+        keyboard = []
+        for row in file_info["buttons"]:
+            button_row = []
+            for btn_info in row:
+                if "url" in btn_info:
+                    button_row.append(InlineKeyboardButton(btn_info["text"], url=btn_info["url"]))
+                elif "callback_data" in btn_info:
+                    button_row.append(InlineKeyboardButton(btn_info["text"], callback_data=btn_info["callback_data"]))
+            keyboard.append(button_row)
+        
+        if keyboard:
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+    video_message = await context.bot.send_video(
+        chat_id=user_id, 
+        video=file_id, 
+        caption=caption, 
+        parse_mode=ParseMode.HTML,
+        reply_markup=reply_markup # अपडेटेड कीबोर्ड
+    )
+    
+    # ... (ऑटो-डिलीट वाला कोड वैसा ही रहेगा) ...
     warning_message = await context.bot.send_message(chat_id=user_id, text=DELETE_WARNING_TEXT)
     context.job_queue.run_once(auto_delete_messages, DELETE_DELAY, data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption}, chat_id=user_id)
 
