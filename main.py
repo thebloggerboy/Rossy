@@ -90,30 +90,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # main.py के अंदर
 
+# main.py के अंदर
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data
     
-    # सबसे पहले क्लिक का जवाब दें ताकि लोडिंग बंद हो जाए
-    await query.answer() 
-    
+    # --- चेक बटन का लॉजिक ---
     if data.startswith("check_"):
         file_key = data.split("_", 1)[1]
+        
         if await is_user_member(user_id, context):
+            # अगर मेंबर है, तो सामान्य जवाब दें और काम करें
+            await query.answer()
             await query.message.delete()
             await send_file(user_id, file_key, context)
         else:
-            # अब यह पॉप-अप सही से काम करेगा
+            # अगर मेंबर नहीं है, तो सिर्फ पॉप-अप अलर्ट वाला जवाब दें
             await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
             
+    # --- री-सेंड बटन का लॉजिक ---
     elif data.startswith("resend_"):
+        await query.answer()
         file_key = data.split("_", 1)[1]
         await query.message.delete()
         await send_file(user_id, file_key, context)
         
+    # --- क्लोज बटन का लॉजिक ---
     elif data == "close_msg":
         await query.message.delete()
+        # आप चाहें तो एक छोटा सा कन्फर्मेशन पॉप-अप दे सकते हैं
+        await query.answer(text="Mᴇssᴀɢᴇ ᴅᴇʟᴇᴛᴇᴅ.", show_alert=False)
 
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
