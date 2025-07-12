@@ -110,8 +110,35 @@ async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_T
     context.job_queue.run_once(auto_delete_messages, DELETE_DELAY, data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption}, chat_id=user_id)
 
 # --- कमांड और बटन हैंडलर्स ---
+# main.py के start फंक्शन के अंदर
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user; add_user(user.id)
+    user = update.effective_user
+    is_new_user = add_user(user.id)
+    
+    if is_new_user:
+        bot_username = (await context.bot.get_me()).username
+        logger.info(f"New user {user.id} for bot @{bot_username}")
+        if LOG_CHANNEL_ID:
+            try:
+                user_link = f"[{user.first_name}](tg://user?id={user.id})"
+                text = (
+                    f"✅ **New User Alert!**\n\n"
+                    f"🤖 **Bot:** @{bot_username}\n"
+                    f"👤 **Name:** {user_link}\n"
+                    f"🆔 **ID:** `{user.id}`"
+                )
+                if user.username:
+                    text += f"\n🔖 **Username:** @{user.username}"
+                
+                await context.bot.send_message(
+                    chat_id=LOG_CHANNEL_ID, 
+                    text=text, 
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Failed to send log to channel: {e}")
+    # ... बाकी का कोड वैसा ही रहेगा ...
     if user.id in db["banned_users"]: await update.message.reply_text(BANNED_TEXT); return
     if context.args:
         file_key = context.args[0]; context.user_data['file_key'] = file_key
