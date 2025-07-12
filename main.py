@@ -1,4 +1,5 @@
-# main.py (Final, Complete, All-in-One, and Corrected)
+# main.py (Final All-in-One Version with All Fixes)
+
 import os
 import logging
 import asyncio
@@ -100,6 +101,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.delete(); await send_file(user_id, file_key, context)
     elif data == "close_msg": await query.message.delete()
 
+# --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
@@ -128,9 +130,11 @@ async def broadcast_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ."); return
     users, sent, failed = get_all_user_ids(), 0, 0
     await update.message.reply_text(f"Bʀᴏᴀᴅᴄᴀsᴛɪɴɢ sᴛᴀʀᴛᴇᴅ ᴛᴏ {len(users)} ᴜsᴇʀs...")
+    reply_markup = msg.reply_markup
     for user_id in users:
         try:
-            await msg.copy(chat_id=int(user_id)); sent += 1; await asyncio.sleep(0.1)
+            await context.bot.copy_message(chat_id=int(user_id), from_chat_id=msg.chat_id, message_id=msg.message_id, reply_markup=reply_markup)
+            sent += 1; await asyncio.sleep(0.1)
         except Exception as e:
             failed += 1; logger.error(f"Bʀᴏᴀᴅᴄᴀsᴛ ғᴀɪʟᴇᴅ ғᴏʀ {user_id}: {e}")
             if "bot was blocked" in str(e): db["users"].pop(str(user_id), None)
@@ -168,4 +172,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
