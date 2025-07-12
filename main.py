@@ -59,26 +59,48 @@ async def send_force_subscribe_message(update: Update, context: ContextTypes.DEF
     await update.message.reply_text(JOIN_CHANNEL_TEXT, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
-    job = context.job; chat_id, message_ids, file_key, caption = job.chat_id, job.data['message_ids'], job.data['file_key'], job.data['caption']
+    job = context.job
+    # यहाँ नया is_resent पैरामीटर निकालें
+    chat_id, message_ids, file_key, caption, is_resent = job.chat_id, job.data['message_ids'], job.data['file_key'], job.data['caption'], job.data.get('is_resent', False)
+    
     try:
         for msg_id in message_ids:
             try: await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
             except BadRequest: pass
-        keyboard = [[InlineKeyboardButton("▶️ Wᴀᴛᴄʜ Aɢᴀɪɴ", callback_data=f"resend_{file_key}"), InlineKeyboardButton("❌ Dᴇʟᴇᴛᴇ", callback_data="close_msg")]]
-        text = f"{caption}\n\n{RESEND_PROMPT_TEXT.format(file_key=file_key)}"
-        await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
-    except Exception as e: logger.error(f"Error in auto_delete_messages: {e}")
+        
+        # --- यहाँ मुख्य बदलाव है ---
+        # अगर यह पहली बार डिलीट हो रहा है, तो बटन भेजें
+        if not is_resent:
+            keyboard = [[InlineKeyboardButton("▶️ Wᴀᴛᴄʜ Aɢᴀɪɴ", callback_data=f"resend_{file_key}"), InlineKeyboardButton("❌ Dᴇʟᴇᴛᴇ", callback_data="close_msg")]]
+            text = f"{caption}\n\n{RESEND_PROMPT_TEXT.format(file_key=file_key)}"
+            await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
+        else:
+            # अगर यह दूसरी बार डिलीट हो रहा है, तो सिर्फ टेक्स्ट भेजें
+            await context.bot.send_message(chat_id=chat_id, text=f"Fɪʟᴇ ({file_key}) ʜᴀs ʙᴇᴇɴ ᴅᴇʟᴇᴛᴇᴅ ᴀɢᴀɪɴ.")
 
+    except Exception as e:
+        logger.error(f"Error in auto_delete_messages: {e}")
 # main.py के अंदर
 
-async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
+async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE, is_resend=False):
     if file_key not in FILE_DATA:
-        # ... (एरर वाला कोड वैसा ही रहेगा)
+        # ... (यह वैसा ही रहेगा)
         return
         
     file_info = FILE_DATA[file_key]
     caption = file_info.get("caption", "")
-    file_id = file_info.get("id")
+    
+    video_message = await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=caption, parse_mode=ParseMode.HTML)
+    warning_message = await context.bot.send_message(chat_id=user_id, text=DELETE_WARNING_TEXT)
+    
+    # --- यहाँ मुख्य बदलाव है ---
+    # अब हम is_resent की जानकारी भी साथ में भेजेंगे
+    context.job_queue.run_once(
+        auto_delete_messages, 
+        DELETE_DELAY, 
+        data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption, 'is_resent': is_resend}, 
+        chat_id=user_id
+    )
     
     # --- यहाँ मुख्य बदलाव है ---
     reply_markup = None
@@ -143,34 +165,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # main.py के अंदर
 
-# main.py के अंदर
-
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data
     
-    # --- चेक बटन का लॉजिक ---
+    await query.answer()
+    
     if data.startswith("check_"):
         file_key = data.split("_", 1)[1]
-        
         if await is_user_member(user_id, context):
-            # अगर मेंबर है, तो सामान्य जवाब दें और काम करें
-            await query.answer()
             await query.message.delete()
-            await send_file(user_id, file_key, context)
+            await send_file(user_id, file_key, context, is_resend=False) # पहली बार, तो is_resend=False
         else:
-            # अगर मेंबर नहीं है, तो सिर्फ पॉप-अप अलर्ट वाला जवाब दें
             await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
             
-    # --- री-सेंड बटन का लॉजिक ---
     elif data.startswith("resend_"):
-        await query.answer()
         file_key = data.split("_", 1)[1]
         await query.message.delete()
-        await send_file(user_id, file_key, context)
+        await send_file(user_id, file_key, context, is_resend=True) # दूसरी बार, तो is_resend=True
         
-    # --- क्लोज बटन का लॉजिक ---
     elif data == "close_msg":
         await query.message.delete()
         # आप चाहें तो एक छोटा सा कन्फर्मेशन पॉप-अप दे सकते हैं
