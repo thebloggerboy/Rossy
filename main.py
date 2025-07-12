@@ -88,18 +88,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
         await update.message.reply_text(WELCOME_TEXT.format(user_name=user.first_name), reply_markup=InlineKeyboardMarkup(keyboard))
 
+# main.py के अंदर
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query; user_id = query.from_user.id; data = query.data
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+    
+    # सबसे पहले क्लिक का जवाब दें ताकि लोडिंग बंद हो जाए
+    await query.answer() 
+    
     if data.startswith("check_"):
-        await query.answer()
         file_key = data.split("_", 1)[1]
         if await is_user_member(user_id, context):
-            await query.message.delete(); await send_file(user_id, file_key, context)
-        else: await query.answer(NOT_JOINED_ALERT, show_alert=True)
+            await query.message.delete()
+            await send_file(user_id, file_key, context)
+        else:
+            # अब यह पॉप-अप सही से काम करेगा
+            await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
+            
     elif data.startswith("resend_"):
-        await query.answer(); file_key = data.split("_", 1)[1]
-        await query.message.delete(); await send_file(user_id, file_key, context)
-    elif data == "close_msg": await query.message.delete()
+        file_key = data.split("_", 1)[1]
+        await query.message.delete()
+        await send_file(user_id, file_key, context)
+        
+    elif data == "close_msg":
+        await query.message.delete()
 
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
