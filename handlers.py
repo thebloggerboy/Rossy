@@ -113,22 +113,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
         await update.message.reply_text(WELCOME_TEXT.format(user_name=user.first_name), reply_markup=InlineKeyboardMarkup(keyboard))
 
+# handlers.py के अंदर
+
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query, user_id, data = update.callback_query, query.from_user.id, query.data
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
     
+    # --- चेक बटन का लॉजिक ---
     if data.startswith("check_"):
+        file_key = data.split("_", 1)[1]
+        
+        # पहले मेंबरशिप चेक करें
+        if await is_user_member(user_id, context):
+            # अगर मेंबर है, तो सामान्य जवाब दें और काम करें
+            await query.answer()
+            await query.message.delete()
+            await send_file(user_id, file_key, context)
+        else:
+            # अगर मेंबर नहीं है, तो सिर्फ पॉप-अप अलर्ट वाला जवाब दें
+            await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
+            
+    # --- री-सेंड बटन का लॉजिक ---
+    elif data.startswith("resend_"):
         await query.answer()
         file_key = data.split("_", 1)[1]
-        if await is_user_member(user_id, context):
-            await query.message.delete(); await send_file(user_id, file_key, context)
-        else: await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
-    elif data.startswith("resend_"):
-        await query.answer(); file_key = data.split("_", 1)[1]
-        await query.message.delete(); await send_file(user_id, file_key, context, is_resend=True)
-    elif data == "close_msg":
         await query.message.delete()
-        await query.answer("Mᴇssᴀɢᴇ Dᴇʟᴇᴛᴇᴅ")
-
+        await send_file(user_id, file_key, context, is_resend=True)
+        
+    # --- क्लोज बटन का लॉजिक ---
+    elif data == "close_msg":
+        # पहले मैसेज डिलीट करें, फिर जवाब दें
+        await query.message.delete()
+        await query.answer(text="Mᴇssᴀɢᴇ Dᴇʟᴇᴛᴇᴅ.", show_alert=False)
+    
+    # --- अगर कोई और बटन है तो ---
+    else:
+        # एक खाली जवाब भेजें ताकि लोडिंग बंद हो जाए
+        await query.answer()
 # --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
