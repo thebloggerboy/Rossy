@@ -21,16 +21,41 @@ DELETE_WARNING_TEXT = "⚠️ Tʜɪs ᴍᴇᴅɪᴀ ᴍᴇssᴀɢᴇ ᴡɪʟʟ �
 RESEND_PROMPT_TEXT = "<i>Yᴏᴜʀ Fɪʟᴇ ({file_key}) ᴡᴀs Dᴇʟᴇᴛᴇᴅ 🗑\nIғ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɢᴇᴛ ɪᴛ ᴀɢᴀɪɴ, ᴄʟɪᴄᴋ ᴛʜᴇ 'Wᴀᴛᴄʜ Aɢᴀɪɴ' ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.</i>"
 FINAL_DELETE_TEXT = "Tʜᴇ 'Wᴀᴛᴄʜ Aɢᴀɪɴ' ʙᴜᴛᴛᴏɴ ᴄᴀɴ ᴏɴʟʏ ʙᴇ ᴜsᴇᴅ ᴏɴᴄᴇ.\nIғ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴡᴀᴛᴄʜ ᴛʜᴇ ᴠɪᴅᴇᴏ ᴀɢᴀɪɴ, ʏᴏᴜ ᴄᴀɴ ɢᴇᴛ ɪᴛ ғʀᴏᴍ ᴏᴜʀ ᴍᴀɪɴ ᴄʜᴀɴɴᴇʟ."
 
-# --- हेल्पर फंक्शन्स ---
-async def is_user_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    if user_id in ADMIN_IDS: return True
-    for channel in FORCE_SUB_CHANNELS:
-        try:
-            member = await context.bot.get_chat_member(chat_id=channel["chat_id"], user_id=user_id)
-            if member.status not in ['member', 'administrator', 'creator']: return False
-        except BadRequest: return False
-    return True
+# handlers.py के अंदर
 
+async def is_user_member(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    # एडमिन को हमेशा एक्सेस दें
+    if user_id in ADMIN_IDS:
+        logger.info(f"User {user_id} is an admin. Bypassing force subscribe.")
+        return True
+
+    # अगर कोई चैनल सेट नहीं है, तो सबको एक्सेस दें
+    if not FORCE_SUB_CHANNELS:
+        logger.info("No force subscribe channels set. Granting access.")
+        return True
+
+    # हर चैनल को एक-एक करके चेक करें
+    for channel in FORCE_SUB_CHANNELS:
+        chat_id = channel["chat_id"]
+        try:
+            member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+            # अगर यूजर 'left' या 'kicked' है, तो एक्सेस न दें
+            if member.status in ['left', 'kicked']:
+                logger.info(f"User {user_id} is not a member of channel {chat_id}. Status: {member.status}")
+                return False
+        except BadRequest as e:
+            # अगर बॉट एडमिन नहीं है या चैनल मौजूद नहीं है
+            logger.error(f"Could not check membership for user {user_id} in channel {chat_id}. Error: {e}")
+            # हम इसे एक फेलियर मानते हैं और एक्सेस नहीं देते
+            return False
+        except Exception as e:
+            logger.error(f"An unexpected error occurred while checking membership for user {user_id} in {chat_id}: {e}")
+            return False
+    
+    # अगर यूजर सभी लूप्स को पास कर लेता है, तो वह मेंबर है
+    logger.info(f"User {user_id} is a member of all required channels.")
+    return True
+    
 async def send_force_subscribe_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_key = context.user_data.get('file_key')
     if not file_key: return
