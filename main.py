@@ -1,4 +1,5 @@
-# main.py (Final, All-in-One, with All Features and Fixes)
+# main.py (Final All-in-One Version with All Fixes)
+
 import os
 import logging
 import asyncio
@@ -68,16 +69,76 @@ async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e: logger.error(f"Error in auto_delete_messages: {e}")
 
-async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE, is_resend: bool = False):
-    if file_key not in FILE_DATA: await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT); return
-    file_info = FILE_DATA[file_key]; caption = file_info.get("caption", "")
-    video_message = await context.bot.send_video(chat_id=user_id, video=file_info["id"], caption=caption, parse_mode=ParseMode.HTML)
+# main.py के अंदर
+
+async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
+    if file_key not in FILE_DATA:
+        # ... (एरर वाला कोड वैसा ही रहेगा)
+        return
+        
+    file_info = FILE_DATA[file_key]
+    caption = file_info.get("caption", "")
+    file_id = file_info.get("id")
+    
+    # --- यहाँ मुख्य बदलाव है ---
+    reply_markup = None
+    if "buttons" in file_info:
+        # बटनों को पंक्तियों के हिसाब से बनाने का लॉजिक
+        keyboard = []
+        for row in file_info["buttons"]:
+            button_row = []
+            for btn_info in row:
+                if "url" in btn_info:
+                    button_row.append(InlineKeyboardButton(btn_info["text"], url=btn_info["url"]))
+                elif "callback_data" in btn_info:
+                    button_row.append(InlineKeyboardButton(btn_info["text"], callback_data=btn_info["callback_data"]))
+            keyboard.append(button_row)
+        
+        if keyboard:
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+    video_message = await context.bot.send_video(
+        chat_id=user_id, 
+        video=file_id, 
+        caption=caption, 
+        parse_mode=ParseMode.HTML,
+        reply_markup=reply_markup # अपडेटेड कीबोर्ड
+    )
+    
+    # ... (ऑटो-डिलीट वाला कोड वैसा ही रहेगा) ...
     warning_message = await context.bot.send_message(chat_id=user_id, text=DELETE_WARNING_TEXT)
-    context.job_queue.run_once(auto_delete_messages, DELETE_DELAY, data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption, 'is_resent': is_resend}, chat_id=user_id)
+    context.job_queue.run_once(auto_delete_messages, DELETE_DELAY, data={'message_ids': [video_message.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption}, chat_id=user_id)
 
 # --- कमांड और बटन हैंडलर्स ---
+# main.py के start फंक्शन के अंदर
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user; add_user(user.id)
+    user = update.effective_user
+    is_new_user = add_user(user.id)
+    
+    if is_new_user:
+        bot_username = (await context.bot.get_me()).username
+        logger.info(f"New user {user.id} for bot @{bot_username}")
+        if LOG_CHANNEL_ID:
+            try:
+                user_link = f"[{user.first_name}](tg://user?id={user.id})"
+                text = (
+                    f"✅ **New User Alert!**\n\n"
+                    f"🤖 **Bot:** @{bot_username}\n"
+                    f"👤 **Name:** {user_link}\n"
+                    f"🆔 **ID:** `{user.id}`"
+                )
+                if user.username:
+                    text += f"\n🔖 **Username:** @{user.username}"
+                
+                await context.bot.send_message(
+                    chat_id=LOG_CHANNEL_ID, 
+                    text=text, 
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            except Exception as e:
+                logger.error(f"Failed to send log to channel: {e}")
+    # ... बाकी का कोड वैसा ही रहेगा ...
     if user.id in db["banned_users"]: await update.message.reply_text(BANNED_TEXT); return
     if context.args:
         file_key = context.args[0]; context.user_data['file_key'] = file_key
@@ -87,95 +148,57 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
         await update.message.reply_text(WELCOME_TEXT.format(user_name=user.first_name), reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query; user_id = query.from_user.id; data = query.data
-    await query.answer()
-    if data.startswith("check_"):
-        file_key = data.split("_", 1)[1]
-        if await is_user_member(user_id, context): await query.message.delete(); await send_file(user_id, file_key, context)
-        else: await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
-    elif data.startswith("resend_"):
-        file_key = data.split("_", 1)[1]
-        await query.message.delete(); await send_file(user_id, file_key, context, is_resend=True)
-    elif data == "close_msg": await query.message.delete()
+# main.py के अंदर
 
 # main.py के अंदर
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+    
+    # --- चेक बटन का लॉजिक ---
+    if data.startswith("check_"):
+        file_key = data.split("_", 1)[1]
+        
+        if await is_user_member(user_id, context):
+            # अगर मेंबर है, तो सामान्य जवाब दें और काम करें
+            await query.answer()
+            await query.message.delete()
+            await send_file(user_id, file_key, context)
+        else:
+            # अगर मेंबर नहीं है, तो सिर्फ पॉप-अप अलर्ट वाला जवाब दें
+            await query.answer(text=NOT_JOINED_ALERT, show_alert=True)
+            
+    # --- री-सेंड बटन का लॉजिक ---
+    elif data.startswith("resend_"):
+        await query.answer()
+        file_key = data.split("_", 1)[1]
+        await query.message.delete()
+        await send_file(user_id, file_key, context)
+        
+    # --- क्लोज बटन का लॉजिक ---
+    elif data == "close_msg":
+        await query.message.delete()
+        # आप चाहें तो एक छोटा सा कन्फर्मेशन पॉप-अप दे सकते हैं
+        await query.answer(text="Mᴇssᴀɢᴇ ᴅᴇʟᴇᴛᴇᴅ.", show_alert=False)
+
+# --- एडमिन कमांड्स ---
 async def id_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
-    if not msg:
-        await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ."); return
-    
+    if not msg: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ."); return
     text = f"👤 Usᴇʀ ID: `{msg.from_user.id}`\n💬 Cʜᴀᴛ ID: `{msg.chat.id}`"
-    
-    file_id = None
-    file_type = "Unknown"
-
-    if msg.video:
-        file_id = msg.video.file_id
-        file_type = "Video"
-    elif msg.document:
-        file_id = msg.document.file_id
-        file_type = "Document/File"
-    elif msg.photo:
-        file_id = msg.photo[-1].file_id
-        file_type = "Photo"
-    elif msg.audio:
-        file_id = msg.audio.file_id
-        file_type = "Audio"
-    elif msg.voice:
-        file_id = msg.voice.file_id
-        file_type = "Voice Note"
-    elif msg.animation:
-        file_id = msg.animation.file_id
-        file_type = "GIF/Animation"
-    elif msg.sticker:
-        file_id = msg.sticker.file_id
-        file_type = "Sticker"
-        
-    if file_id:
-        text += f"\n\n📄 **{file_type} Info**\nFɪʟᴇ ID: `{file_id}`"
-    
+    if msg.video: text += f"\n📄 Fɪʟᴇ ID: `{msg.video.file_id}`"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN_V2)
 
-# main.py के अंदर
 async def get_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS: return
     msg = update.message.reply_to_message
-    if not msg or not msg.forward_origin:
-        await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ FORWARDED ᴍᴇssᴀɢᴇ."); return
-        
+    if not msg or not msg.forward_origin: await update.message.reply_text("Pʟᴇᴀsᴇ ʀᴇᴘʟʏ ᴛᴏ ᴀ FORWARDED ᴍᴇssᴀɢᴇ."); return
     origin = msg.forward_origin
     text = f"📢 Oʀɪɢɪɴᴀʟ Cʜᴀɴɴᴇʟ ID: `{origin.chat.id}`"
-    
-    file_id = None
-    file_type = "Unknown"
-
-    if msg.video:
-        file_id = msg.video.file_id
-        file_type = "Video"
-    elif msg.document:
-        file_id = msg.document.file_id
-        file_type = "Document/File"
-    elif msg.photo:
-        file_id = msg.photo[-1].file_id
-        file_type = "Photo"
-    elif msg.audio:
-        file_id = msg.audio.file_id
-        file_type = "Audio"
-    elif msg.voice:
-        file_id = msg.voice.file_id
-        file_type = "Voice Note"
-    elif msg.animation:
-        file_id = msg.animation.file_id
-        file_type = "GIF/Animation"
-    elif msg.sticker:
-        file_id = msg.sticker.file_id
-        file_type = "Sticker"
-            
-    if file_id:
-        text += f"\n\n📄 **{file_type} Info**\nFɪʟᴇ ID: `{file_id}`"
-        
+    if msg.video: text += f"\n📄 Fɪʟᴇ ID: `{msg.video.file_id}`"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN_V2)
 
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
