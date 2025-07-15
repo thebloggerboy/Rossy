@@ -20,16 +20,19 @@ FORCE_SUB_CHANNELS = [
 FILE_DATA = {
     "Episode1": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", 
-        "caption": "<b>Eᴘɪsᴏᴅᴇ 1</b>\nQᴜᴀʟɪᴛʏ: 720ᴘHD",
+        "id": "BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA", 
+        "caption": "<b>Eᴘɪsᴏᴅᴇ 1</b>\n\n Qᴜᴀʟɪᴛʏ: 1080p",
         "buttons": [
-            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 2", "url": "https://t.me/YourBotName?start=Episode2"}]
+            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 2", "url": "https://t.me/YourRossyName?start=Episode2"}]
         ]
     },
     "Episode2": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
+        "id": "BAACAgUAAxkBAANHaHW7seGJxu-Bdy9ttnbCUt7UDecAAv0VAALdcVBXpG8rN57w7YA2BA", 
         "caption": "<b>Eᴘɪsᴏᴅᴇ 2</b>\nQᴜᴀʟɪᴛʏ: 1080ᴘ"
+        "buttons": [
+            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 3", "url": "https://t.me/YourRossyBot?start=Episode3"}]
+    ]
     },
     "UpdatePhoto": {
         "type": "photo",
