@@ -23,7 +23,7 @@ FILE_DATA = {
         "id": "BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA", 
         "caption": "<b>Eᴘɪsᴏᴅᴇ 1</b>\n\n Qᴜᴀʟɪᴛʏ: 1080p",
         "buttons": [
-            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 2", "url": "https://t.me/YourRossyName?start=Episode2"}]
+            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 2", "url": "https://t.me/YourRossyBot?start=Episode2"}]
         ]
     },
     "Episode2": {
