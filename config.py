@@ -28,11 +28,11 @@ FILE_DATA = {
     },
     "Episode2": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAANHaHW7seGJxu-Bdy9ttnbCUt7UDecAAv0VAALdcVBXpG8rN57w7YA2BA", 
-        "caption": "<b>Eᴘɪsᴏᴅᴇ 2</b>\nQᴜᴀʟɪᴛʏ: 1080ᴘ"
+        "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
+        "caption": "<b>Episode 2</b>",
         "buttons": [
-            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 3", "url": "https://t.me/YourRossyBot?start=Episode3"}]
-    ]
+            [{"text": "Watch Part 3", "url": "https://t.me/YourRossyBot?start=Episode3"}]
+        ] # <-- यह वाला ']' ब्रैकेट लगाना है
     },
     "UpdatePhoto": {
         "type": "photo",
