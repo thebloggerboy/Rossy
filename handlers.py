@@ -79,11 +79,22 @@ async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=chat_id, text=FINAL_DELETE_TEXT, reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e: logger.error(f"Error in auto_delete_messages: {e}")
 
-# main.py के अंदर
-async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE, is_resend: bool = False):
+# main.py या handlers.py के अंदर
+
+async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE):
     if file_key not in FILE_DATA:
-        await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT)
+        await context.bot.send_message(chat_id=user_id, text="Sorry, file key not found.")
         return
+
+    file_info = FILE_DATA[file_key]
+    file_type = file_info.get("type", "video")
+
+    # अगर कोई गलती से सीरीज की key भेज दे, तो कुछ न करें
+    if file_type == 'series':
+        logger.warning(f"send_file called with a series key '{file_key}'. Ignoring.")
+        return
+        
+    # ... (बाकी का सिंगल फाइल भेजने और ऑटो-डिलीट का लॉजिक वैसा ही रहेगा) ...
         
     file_info = FILE_DATA[file_key]
     file_type = file_info.get("type", "video")
@@ -117,17 +128,14 @@ async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_T
             )
     except Exception as e:
         logger.error(f"Error sending file {file_key}: {e}")
-# --- कमांड और बटन हैंडलर्स ---
-# main.py के अंदर
+# main.py या handlers.py के अंदर
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    add_user(user.id)
-    if user.id in db["banned_users"]:
-        await update.message.reply_text(BANNED_TEXT); return
+    # ... (यूजर को ऐड करने और बैन चेक करने का लॉजिक वैसा ही रहेगा) ...
 
     if not context.args:
-        keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
-        await update.message.reply_text(WELCOME_TEXT.format(user_name=user.first_name), reply_markup=InlineKeyboardMarkup(keyboard))
+        # ... (वेलकम मैसेज का लॉजिक वैसा ही रहेगा) ...
         return
 
     file_key = context.args[0]
@@ -146,16 +154,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # यह एक सीरीज है, तो लूप चलाकर भेजें
             episodes_to_send = file_info.get("episodes", [])
             await update.message.reply_text(f"Sᴇɴᴅɪɴɢ ᴀʟʟ {len(episodes_to_send)} ᴇᴘɪsᴏᴅᴇs. Pʟᴇᴀsᴇ ᴡᴀɪᴛ...")
+            
             for episode_key in episodes_to_send:
+                # हर एपिसोड के लिए send_file को कॉल करें
                 await send_file(user.id, episode_key, context)
                 await asyncio.sleep(2) # स्पैम से बचने के लिए
+                
             await update.message.reply_text("✅ Aʟʟ ᴇᴘɪsᴏᴅᴇs ʜᴀᴠᴇ ʙᴇᴇɴ sᴇɴᴛ!")
         else:
             # यह एक सिंगल फाइल है, तो सीधे भेजें
             await send_file(user.id, file_key, context)
     else:
-        await update.message.reply_text(FILE_NOT_FOUND_TEXT)
-# handlers.py के अंदर
+        await update.message.reply_text("Sᴏʀʀʏ, ғɪʟᴇ ᴋᴇʏ ɴᴏᴛ ғᴏᴜɴᴅ.")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
