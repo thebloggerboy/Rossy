@@ -47,9 +47,9 @@ FILE_DATA = {
         "id": "YOUR_APK_FILE_ID",
         "caption": "Lᴀᴛᴇsᴛ Aᴘᴘ Vᴇʀsɪᴏɴ"
     },
-    "Season1Pack": {
+    "innobhabhiep2": {
         "type": "series",
-        "episodes": ["Episode1", "Episode2"] 
+        "episodes": ["BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA", "BAACAgUAAxkBAAOOaHtXCViOAAEOlcoWmydfao-TpaoNAAL9FQAC3XFQV6RvKzee8O2ANgQ"] 
     }
 }
 
