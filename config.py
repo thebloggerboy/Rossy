@@ -1,13 +1,13 @@
-# config.py
+# config.py (Corrected and Updated with Season Packs)
 
-# 1. आपकी एडमिन ID (एक से ज़्यादा हों तो कॉमा लगाकर डालें)
+# 1. आपकी एडमिन ID
 ADMIN_IDS = [6056915535] 
 
-# 2. आपके मेन चैनल का लिंक (डायरेक्ट /start के लिए)
+# 2. आपके मेन चैनल का लिंक
 MAIN_CHANNEL_LINK = "https://t.me/+ngy1Guv8koBiODM1" 
 
-# 3. लॉग चैनल की ID (नए यूजर्स की जानकारी के लिए, वैकल्पिक)
-LOG_CHANNEL_ID = -1002365365973 # अगर नहीं है तो 0 कर दें
+# 3. लॉग चैनल की ID
+LOG_CHANNEL_ID = -1002365365973
 
 # 4. फोर्स सब्सक्राइब के लिए चैनल
 FORCE_SUB_CHANNELS = [
@@ -16,40 +16,48 @@ FORCE_SUB_CHANNELS = [
 ]
 
 # 5. आपकी सभी फाइलें, पैक, और सीरीज
-# file_type: 'video', 'document', 'photo', 'series'
 FILE_DATA = {
+    # --- पहले सभी एपिसोड्स को अलग-अलग परिभाषित करें ---
     "Episode1": {
         "type": "video", 
-        "id": "BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA", 
-        "caption": "<b>Eᴘɪsᴏᴅᴇ 1</b>\n\n Qᴜᴀʟɪᴛʏ: 1080p",
-        "buttons": [
-            [{"text": "🎬 Wᴀᴛᴄʜ Pᴀʀᴛ 2", "url": "https://t.me/YourRossyBot?start=Episode2"}]
-        ]
+        "id": "BAACAgUAAxkBAAMXaGpSqvDgq-0fAszJ6iItqfYpI7wAAroTAALdcVBXt_ZT-2d9Lno2BA", 
+        "caption": "<b>Eᴘɪsᴏᴅᴇ 1</b>\nQᴜᴀʟɪᴛʏ: 1080p"
+        # इस एपिसोड के साथ कोई बटन नहीं है
     },
+
     "Episode2": {
         "type": "video", 
         "id": "BAACAgUAAxkBAAMKaGpLylL2eBYyfy9tX8wqGoVV12gAAv0VAALdcVBXBhEhvub79Q02BA", 
-        "caption": "<b>Episode 2</b>",
+        "caption": "<b>Eᴘɪsᴏᴅᴇ 2</b>",
         "buttons": [
-            [{"text": "Watch Part 3", "url": "https://t.me/YourRossyBot?start=Episode3"}]
-        ] # <-- यह वाला ']' ब्रैकेट लगाना है
-    },
-    "UpdatePhoto": {
-        "type": "photo",
-        "id": "YOUR_PHOTO_FILE_ID",
-        "caption": "🔥 Nᴇᴡ Uᴘᴅᴀᴛᴇ!",
-        "buttons": [
-            [{"text": "Cʜᴇᴄᴋ Nᴏᴡ", "url": "https://t.me/YourMainChannel"}]
+            [{"text": "Wᴀᴛᴄʜ Pᴀʀᴛ 3", "url": "https://t.me/YourRossyBot?start=Episode3"}]
         ]
     },
-    "SomeApp": {
-        "type": "document",
-        "id": "YOUR_APK_FILE_ID",
-        "caption": "Lᴀᴛᴇsᴛ Aᴘᴘ Vᴇʀsɪᴏɴ"
+
+    "Episode3": { # सीजन 2 के लिए
+        "type": "video",
+        "id": "BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA",
+        "caption": "<b>S2 Eᴘɪsᴏᴅᴇ 1</b>"
     },
-    "innobhabhiep2": {
+
+    "Episode4": { # सीजन 2 के लिए
+        "type": "video",
+        "id": "BAACAgUAAxkBAAOOaHtXCViOAAEOlcoWmydfao-TpaoNAAL9FQAC3XFQV6RvKzee8O2ANgQ",
+        "caption": "<b>S2 Eᴘɪsᴏᴅᴇ 2</b>",
+        "buttons": [
+            [{"text": "Wᴀᴛᴄʜ Nᴇxᴛ Sᴇᴀsᴏɴ", "url": "https://t.me/YourMainChannel"}]
+        ]
+    },
+
+    # --- अब सीरीज पैक बनाएं ---
+    "Season1Pack": {
         "type": "series",
-        "episodes": ["BAACAgUAAxkBAANEaHW7EfEoyLY34V2h46PXRbDA_9oAAroTAALdcVBXIIL-uAu5A0Q2BA", "BAACAgUAAxkBAAOOaHtXCViOAAEOlcoWmydfao-TpaoNAAL9FQAC3XFQV6RvKzee8O2ANgQ"] 
+        "episodes": ["Episode1", "Episode2"] # यहाँ keys का इस्तेमाल करें
+    },
+
+    "Season2Pack": {
+        "type": "series",
+        "episodes": ["Episode3", "Episode4"] # यहाँ keys का इस्तेमाल करें
     }
 }
 
