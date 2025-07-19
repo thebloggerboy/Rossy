@@ -80,29 +80,13 @@ async def auto_delete_messages(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e: logger.error(f"Error in auto_delete_messages: {e}")
 
 # main.py के अंदर
-
-async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE, is_resend: bool = False, is_part_of_series: bool = False):
+async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_TYPE, is_resend: bool = False):
     if file_key not in FILE_DATA:
-        if not is_part_of_series: await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT)
+        await context.bot.send_message(chat_id=user_id, text=FILE_NOT_FOUND_TEXT)
         return
         
     file_info = FILE_DATA[file_key]
     file_type = file_info.get("type", "video")
-
-    # --- सीरीज भेजने का लॉजिक ---
-    if file_type == 'series':
-        # यह मैसेज सिर्फ एक बार भेजा जाएगा, जब सीरीज शुरू हो
-        if not is_part_of_series:
-            episodes_to_send = file_info.get("episodes", [])
-            await context.bot.send_message(chat_id=user_id, text=f"Sᴇɴᴅɪɴɢ ᴀʟʟ {len(episodes_to_send)} ᴇᴘɪsᴏᴅᴇs. Pʟᴇᴀsᴇ ᴡᴀɪᴛ...")
-            for episode_key in episodes_to_send:
-                await asyncio.sleep(2)
-                # is_part_of_series=True भेजें ताकि बॉट को पता चले कि यह एक सीरीज का हिस्सा है
-                await send_file(user_id, episode_key, context, is_resend=False, is_part_of_series=True)
-            await context.bot.send_message(chat_id=user_id, text="✅ Aʟʟ ᴇᴘɪsᴏᴅᴇs ʜᴀᴠᴇ ʙᴇᴇɴ sᴇɴᴛ!")
-        return
-
-    # --- सिंगल फाइल भेजने का लॉजिक (अब यह सीरीज के लिए भी काम करेगा) ---
     caption = file_info.get("caption", "")
     file_id = file_info.get("id")
     
@@ -116,11 +100,13 @@ async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_T
 
     try:
         message_to_delete = None
-        # ... (वीडियो, फोटो, डॉक्यूमेंट भेजने का कोड वैसा ही रहेगा) ...
         if file_type == 'video':
             message_to_delete = await context.bot.send_video(chat_id=user_id, video=file_id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+        elif file_type == 'photo':
+            message_to_delete = await context.bot.send_photo(chat_id=user_id, photo=file_id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+        elif file_type == 'document':
+            message_to_delete = await context.bot.send_document(chat_id=user_id, document=file_id, caption=caption, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
         
-        # ऑटो-डिलीट का लॉजिक
         if message_to_delete:
             warning_message = await context.bot.send_message(chat_id=user_id, text=DELETE_WARNING_TEXT)
             context.job_queue.run_once(
@@ -129,32 +115,46 @@ async def send_file(user_id: int, file_key: str, context: ContextTypes.DEFAULT_T
                 data={'message_ids': [message_to_delete.message_id, warning_message.message_id], 'file_key': file_key, 'caption': caption, 'is_resent': is_resend}, 
                 chat_id=user_id
             )
-            
     except Exception as e:
         logger.error(f"Error sending file {file_key}: {e}")
 # --- कमांड और बटन हैंडलर्स ---
+# main.py के अंदर
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    is_new_user = add_user(user.id)
-    
-    if is_new_user and LOG_CHANNEL_ID:
-        try:
-            bot_username = (await context.bot.get_me()).username
-            user_link = f"[{user.first_name}](tg://user?id={user.id})"
-            text = f"✅ Nᴇᴡ Usᴇʀ\nBᴏᴛ: @{bot_username}\nNᴀᴍᴇ: {user_link}\nID: `{user.id}`"
-            if user.username: text += f"\nUsᴇʀɴᴀᴍᴇ: @{user.username}"
-            await context.bot.send_message(chat_id=LOG_CHANNEL_ID, text=text, parse_mode=ParseMode.MARKDOWN_V2)
-        except Exception as e: logger.error(f"Failed to send log: {e}")
-        
-    if user.id in db["banned_users"]: await update.message.reply_text(BANNED_TEXT); return
-    if context.args:
-        file_key = context.args[0]; context.user_data['file_key'] = file_key
-        if await is_user_member(user.id, context): await send_file(user.id, file_key, context)
-        else: await send_force_subscribe_message(update, context)
-    else:
+    add_user(user.id)
+    if user.id in db["banned_users"]:
+        await update.message.reply_text(BANNED_TEXT); return
+
+    if not context.args:
         keyboard = [[InlineKeyboardButton("Mᴀɪɴ Cʜᴀɴɴᴇʟ", url=MAIN_CHANNEL_LINK)]]
         await update.message.reply_text(WELCOME_TEXT.format(user_name=user.first_name), reply_markup=InlineKeyboardMarkup(keyboard))
+        return
 
+    file_key = context.args[0]
+    context.user_data['file_key'] = file_key
+    
+    if not await is_user_member(user.id, context):
+        await send_force_subscribe_message(update, context)
+        return
+
+    # --- यहाँ मुख्य बदलाव है ---
+    if file_key in FILE_DATA:
+        file_info = FILE_DATA[file_key]
+        file_type = file_info.get("type", "video")
+
+        if file_type == 'series':
+            # यह एक सीरीज है, तो लूप चलाकर भेजें
+            episodes_to_send = file_info.get("episodes", [])
+            await update.message.reply_text(f"Sᴇɴᴅɪɴɢ ᴀʟʟ {len(episodes_to_send)} ᴇᴘɪsᴏᴅᴇs. Pʟᴇᴀsᴇ ᴡᴀɪᴛ...")
+            for episode_key in episodes_to_send:
+                await send_file(user.id, episode_key, context)
+                await asyncio.sleep(2) # स्पैम से बचने के लिए
+            await update.message.reply_text("✅ Aʟʟ ᴇᴘɪsᴏᴅᴇs ʜᴀᴠᴇ ʙᴇᴇɴ sᴇɴᴛ!")
+        else:
+            # यह एक सिंगल फाइल है, तो सीधे भेजें
+            await send_file(user.id, file_key, context)
+    else:
+        await update.message.reply_text(FILE_NOT_FOUND_TEXT)
 # handlers.py के अंदर
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
